@@ -1,10 +1,10 @@
-# Code Text Toolkit
+# CodeFlow LLM Toolkit
 
 A modern, cross-platform web application for text and code file operations. Built with Blazor WebAssembly and MudBlazor for a beautiful Material Design UI.
 
 ## 🚀 Try It Now
 
-**[Launch Code Text Toolkit](https://JacYosAkiCra.github.io/CodeTextToolkit/)** - No installation required!
+**[Launch CodeFlow LLM Toolkit](http://localhost:5080)** - No installation required!
 
 ---
 

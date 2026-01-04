@@ -1,4 +1,4 @@
-# Code Text Toolkit - Blazor WebAssembly Application
+# CodeFlow LLM Toolkit - Blazor WebAssembly Application
 
 ## Project Overview
 A cross-platform web application for text/code file operations:

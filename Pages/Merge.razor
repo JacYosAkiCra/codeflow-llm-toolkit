@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 
-<PageTitle>Merge Files - Code Text Toolkit</PageTitle>
+<PageTitle>Merge Files - CodeFlow LLM Toolkit</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-2">Merge Text Files</MudText>
 <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">
@@ -250,7 +250,7 @@
 
         await Task.Delay(100); // Allow UI to update
 
-        var files = _orderedFiles.Select(f => (f.Name, f.Content)).ToList();
+        var files = _orderedFiles.Select(f => (f.Name, f.Content)). ToList();
         var mergedContent = FileService.MergeFiles(files, _addHeaders);
 
         _progress = 100;
