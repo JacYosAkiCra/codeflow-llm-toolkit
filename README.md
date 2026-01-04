@@ -4,7 +4,7 @@ A modern, cross-platform web application for text and code file operations. Buil
 
 ## 🚀 Try It Now
 
-**[Launch CodeFlow LLM Toolkit](http://localhost:5080)** - No installation required!
+**[Launch CodeFlow LLM Toolkit](https://jacyosakicra.github.io/codeflow-llm-toolkit/)** - No installation required!
 
 ---
 
