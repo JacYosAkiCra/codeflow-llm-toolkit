@@ -4,14 +4,14 @@ A modern, cross-platform web application for text and code file operations. Buil
 
 ## 🚀 Try It Now
 
-**[Launch Code Text Toolkit](https://yourusername.github.io/CodeTextToolkit/)** - No installation required!
+**[Launch Code Text Toolkit](https://JacYosAkiCra.github.io/CodeTextToolkit/)** - No installation required!
 
 ---
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)
 ![Blazor WASM](https://img.shields.io/badge/Blazor-WebAssembly-blue)
 ![MudBlazor](https://img.shields.io/badge/UI-MudBlazor-green)
-[![Deploy to GitHub Pages](https://github.com/yourusername/CodeTextToolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/yourusername/CodeTextToolkit/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml)
 
 ## Features
 
