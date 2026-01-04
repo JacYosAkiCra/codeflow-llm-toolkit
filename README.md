@@ -6,12 +6,13 @@ A modern, cross-platform web application for text and code file operations. Buil
 
 **[Launch CodeFlow LLM Toolkit](https://jacyosakicra.github.io/codeflow-llm-toolkit/)** - No installation required!
 
+[![Deploy to GitHub Pages](https://github.com/JacYosAkiCra/codeflow-llm-toolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/JacYosAkiCra/codeflow-llm-toolkit/actions/workflows/deploy.yml)
+
 ---
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)
 ![Blazor WASM](https://img.shields.io/badge/Blazor-WebAssembly-blue)
 ![MudBlazor](https://img.shields.io/badge/UI-MudBlazor-green)
-[![Deploy to GitHub Pages](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml)
 
 ## Features
 
@@ -80,7 +81,7 @@ dotnet restore
 dotnet run
 ```
 
-4. Open your browser to `http://localhost:5062`
+4. Open your browser to `http://localhost:5080`
 
 ### Building for Production
 
