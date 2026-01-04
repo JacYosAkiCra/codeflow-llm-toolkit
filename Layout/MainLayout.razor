@@ -1,0 +1,83 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider @ref="_themeProvider" @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
+        <MudText Typo="Typo.h5" Class="ml-3">Code Text Toolkit</MudText>
+        <MudSpacer />
+        <MudTooltip Text="@(_isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode")">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                           Color="Color.Inherit" 
+                           OnClick="@ToggleTheme" />
+        </MudTooltip>
+        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Href="https://github.com" Target="_blank" />
+    </MudAppBar>
+    
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+            <MudNavLink Href="/code-to-text" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Code">Code to Text</MudNavLink>
+            <MudNavLink Href="/merge" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MergeType">Merge Files</MudNavLink>
+            <MudNavLink Href="/split" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.CallSplit">Split File</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = true;
+    private MudThemeProvider? _themeProvider;
+    
+    private MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#5E35B1",
+            Secondary = "#00BCD4",
+            AppbarBackground = "#5E35B1",
+            Background = "#F5F5F5",
+            Surface = "#FFFFFF",
+            DrawerBackground = "#FFFFFF"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#00E5FF",
+            AppbarBackground = "#1a1a2e",
+            Background = "#121212",
+            Surface = "#1E1E1E",
+            DrawerBackground = "#1a1a2e"
+        },
+        Typography = new Typography()
+        {
+            Default = new DefaultTypography()
+            {
+                FontFamily = new[] { "Roboto", "Helvetica", "Arial", "sans-serif" }
+            }
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _themeProvider != null)
+        {
+            _isDarkMode = await _themeProvider.GetSystemDarkModeAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void ToggleTheme() => _isDarkMode = !_isDarkMode;
+}
+

@@ -1,0 +1,284 @@
+@page "/merge"
+@inject FileProcessingService FileService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Merge Files - Code Text Toolkit</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Merge Text Files</MudText>
+<MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">
+    Combine multiple text files into a single document. Drag to reorder files before merging.
+</MudText>
+
+<MudPaper Class="pa-6 mb-6">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+        Options
+    </MudText>
+    
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSwitch @bind-Value="_addHeaders" Color="Color.Primary" Label="Add file headers between sections" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSwitch Value="_includeSubfolders" 
+                       ValueChanged="@((bool v) => OnIncludeSubfoldersChanged(v))" 
+                       Color="Color.Primary" 
+                       Label="Include subfolders" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_outputFileName" 
+                          Label="Output File Name" 
+                          Variant="Variant.Outlined" 
+                          Adornment="Adornment.End" 
+                          AdornmentText=".txt" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<FileDropZone Title="Drop Text Files or Select a Folder" 
+              Subtitle="Select multiple text files or a folder to merge"
+              Multiple="true"
+              AllowFolderSelection="true"
+              Accept=".txt,.md,.log,*"
+              OnFilesChanged="@OnFilesChanged"
+              @ref="_fileDropZone" />
+
+@if (_files.Any())
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Reorder" Class="mr-2" />
+                File Order (@_files.Count files)
+            </MudText>
+            <div>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Secondary" 
+                           StartIcon="@Icons.Material.Filled.Visibility"
+                           OnClick="@PreviewMerge"
+                           Class="mr-2">
+                    Preview
+                </MudButton>
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.MergeType"
+                           OnClick="@MergeAndDownload"
+                           Disabled="@_isProcessing">
+                    @if (_isProcessing)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Merging...</span>
+                    }
+                    else
+                    {
+                        <span>Merge & Download</span>
+                    }
+                </MudButton>
+            </div>
+        </div>
+
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mb-4">
+            Use the arrows to reorder files. Files will be merged in the order shown.
+        </MudText>
+
+        <MudList T="FileItem" Dense="true">
+            @for (var i = 0; i < _orderedFiles.Count; i++)
+            {
+                var index = i;
+                var file = _orderedFiles[i];
+                <MudListItem T="FileItem" Class="mb-2">
+                    <MudPaper Class="d-flex align-center pa-3" Elevation="1">
+                        <MudText Typo="Typo.body2" Class="mr-4" Style="min-width: 30px;">@(index + 1).</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body1">@file.Name</MudText>
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@FormatSize(file.Size)</MudText>
+                                @if (!string.IsNullOrEmpty(file.RelativePath) && file.RelativePath != file.Name)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">
+                                        @GetFolderPath(file.RelativePath)
+                                    </MudChip>
+                                }
+                            </div>
+                        </div>
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowUp" 
+                                       Size="Size.Small" 
+                                       Disabled="@(index == 0)"
+                                       OnClick="@(() => MoveUp(index))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowDown" 
+                                       Size="Size.Small" 
+                                       Disabled="@(index == _orderedFiles.Count - 1)"
+                                       OnClick="@(() => MoveDown(index))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                       Size="Size.Small" 
+                                       Color="Color.Error"
+                                       OnClick="@(() => RemoveFile(index))" />
+                    </MudPaper>
+                </MudListItem>
+            }
+        </MudList>
+
+        @if (_isProcessing)
+        {
+            <MudProgressLinear Value="@_progress" Color="Color.Primary" Class="mt-4" />
+        }
+    </MudPaper>
+}
+
+@if (_showPreview)
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Preview" Class="mr-2" />
+                Preview
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showPreview = false)" />
+        </div>
+        <MudTextField Value="@_previewContent" 
+                      Lines="15" 
+                      Variant="Variant.Outlined" 
+                      ReadOnly="true"
+                      Style="font-family: monospace;" />
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Total size: @FormatSize(_previewContent.Length)
+        </MudText>
+    </MudPaper>
+}
+
+@code {
+    private class FileItem
+    {
+        public string Name { get; set; } = "";
+        public long Size { get; set; }
+        public string Content { get; set; } = "";
+        public string RelativePath { get; set; } = "";
+    }
+
+    private FileDropZone? _fileDropZone;
+    private List<FileDropZone.FileData> _files = new();
+    private List<FileDropZone.FileData> _rawFiles = new();
+    private List<FileItem> _orderedFiles = new();
+    private bool _isProcessing;
+    private double _progress;
+    private bool _addHeaders = true;
+    private bool _includeSubfolders = true;
+    private string _outputFileName = "merged";
+    private bool _showPreview;
+    private string _previewContent = "";
+
+    private void OnFilesChanged(List<FileDropZone.FileData> files)
+    {
+        _rawFiles = files;
+        ApplySubfolderFilter();
+        _showPreview = false;
+    }
+
+    private void ApplySubfolderFilter()
+    {
+        if (_includeSubfolders)
+        {
+            _files = _rawFiles;
+        }
+        else
+        {
+            // Only include files from the root level (no path separators, or only the folder name before separator)
+            _files = _rawFiles.Where(f =>
+            {
+                if (string.IsNullOrEmpty(f.RelativePath) || f.RelativePath == f.Name)
+                    return true; // No path info, include it
+                
+                // Check if file is in a subfolder (has more than one path segment)
+                var parts = f.RelativePath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+                return parts.Length <= 2; // folder/file.txt = 2 parts (root folder + file)
+            }).ToList();
+        }
+
+        _orderedFiles = _files.Select(f => new FileItem
+        {
+            Name = f.Name,
+            Size = f.Size,
+            Content = f.Content,
+            RelativePath = f.RelativePath
+        }).ToList();
+    }
+
+    private void OnIncludeSubfoldersChanged(bool value)
+    {
+        _includeSubfolders = value;
+        if (_rawFiles.Any())
+        {
+            ApplySubfolderFilter();
+        }
+    }
+
+    private void MoveUp(int index)
+    {
+        if (index > 0)
+        {
+            (_orderedFiles[index], _orderedFiles[index - 1]) = (_orderedFiles[index - 1], _orderedFiles[index]);
+        }
+    }
+
+    private void MoveDown(int index)
+    {
+        if (index < _orderedFiles.Count - 1)
+        {
+            (_orderedFiles[index], _orderedFiles[index + 1]) = (_orderedFiles[index + 1], _orderedFiles[index]);
+        }
+    }
+
+    private void RemoveFile(int index)
+    {
+        _orderedFiles.RemoveAt(index);
+    }
+
+    private void PreviewMerge()
+    {
+        var files = _orderedFiles.Select(f => (f.Name, f.Content)).ToList();
+        _previewContent = FileService.MergeFiles(files, _addHeaders);
+        _showPreview = true;
+    }
+
+    private async Task MergeAndDownload()
+    {
+        _isProcessing = true;
+        _progress = 0;
+        StateHasChanged();
+
+        await Task.Delay(100); // Allow UI to update
+
+        var files = _orderedFiles.Select(f => (f.Name, f.Content)).ToList();
+        var mergedContent = FileService.MergeFiles(files, _addHeaders);
+
+        _progress = 100;
+        StateHasChanged();
+
+        var fileName = string.IsNullOrWhiteSpace(_outputFileName) ? "merged" : _outputFileName;
+        if (!fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+        {
+            fileName += ".txt";
+        }
+
+        await JS.InvokeVoidAsync("fileHelper.downloadTextFile", fileName, mergedContent);
+
+        _isProcessing = false;
+        Snackbar.Add($"Merged {_orderedFiles.Count} files into {fileName}", Severity.Success);
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F2} MB";
+    }
+
+    private static string GetFolderPath(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return "";
+        var lastSlash = relativePath.LastIndexOfAny(new[] { '/', '\\' });
+        return lastSlash > 0 ? relativePath[..lastSlash] : "";
+    }
+}

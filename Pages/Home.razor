@@ -1,0 +1,137 @@
+﻿@page "/"
+
+<PageTitle>Code Text Toolkit - Home</PageTitle>
+
+<MudText Typo="Typo.h3" Class="mb-2" Align="Align.Center">Welcome to Code Text Toolkit</MudText>
+<MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-8" Align="Align.Center">
+    A powerful browser-based tool for text and code file operations
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="3" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Color="Color.Primary" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" />
+                    </MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Code to Text</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Convert your code files to plain text format (.txt). 
+                    Supports multiple programming languages including C#, Python, JavaScript, TypeScript, and more.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/code-to-text">
+                    Get Started
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-1" Size="Size.Small" />
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="3" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Color="Color.Secondary" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.MergeType" />
+                    </MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Merge Files</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Combine multiple text files into a single document. 
+                    Optionally add headers between files to maintain clear separation.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" Href="/merge">
+                    Get Started
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-1" Size="Size.Small" />
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+    
+    <MudItem xs="12" md="4">
+        <MudCard Elevation="3" Class="h-100">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudAvatar Color="Color.Tertiary" Size="Size.Large">
+                        <MudIcon Icon="@Icons.Material.Filled.CallSplit" />
+                    </MudAvatar>
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Split File</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">
+                    Split large text files into smaller, manageable chunks. 
+                    Intelligent splitting respects code structure and logical boundaries.
+                </MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Tertiary" Href="/split">
+                    Get Started
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Class="ml-1" Size="Size.Small" />
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<MudDivider Class="my-8" />
+
+<MudText Typo="Typo.h5" Class="mb-4" Align="Align.Center">Features</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <div class="d-flex flex-column align-center text-center pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Primary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1">No Server Upload</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                All processing happens in your browser. Your files never leave your device.
+            </MudText>
+        </div>
+    </MudItem>
+    
+    <MudItem xs="12" sm="6" md="3">
+        <div class="d-flex flex-column align-center text-center pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.Devices" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1">Cross-Platform</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Works on any device with a modern web browser - Windows, Mac, Linux, or mobile.
+            </MudText>
+        </div>
+    </MudItem>
+    
+    <MudItem xs="12" sm="6" md="3">
+        <div class="d-flex flex-column align-center text-center pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.Speed" Size="Size.Large" Color="Color.Tertiary" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1">Fast Processing</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Powered by WebAssembly for near-native performance right in your browser.
+            </MudText>
+        </div>
+    </MudItem>
+    
+    <MudItem xs="12" sm="6" md="3">
+        <div class="d-flex flex-column align-center text-center pa-4">
+            <MudIcon Icon="@Icons.Material.Filled.CloudDownload" Size="Size.Large" Color="Color.Info" Class="mb-2" />
+            <MudText Typo="Typo.subtitle1">No Installation</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Just open the URL and start working. No downloads or installations required.
+            </MudText>
+        </div>
+    </MudItem>
+</MudGrid>

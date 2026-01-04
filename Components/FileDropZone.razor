@@ -1,0 +1,219 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+
+<MudPaper @ondragenter="@OnDragEnter" 
+          @ondragleave="@OnDragLeave" 
+          @ondragover="@OnDragOver"
+          @ondrop="@OnDrop"
+          Class="@GetDropZoneClass()" 
+          Style="@GetDropZoneStyle()">
+    <div class="d-flex flex-column align-center justify-center" style="min-height: 200px;">
+        <MudIcon Icon="@Icons.Material.Filled.CloudUpload" Size="Size.Large" Class="mb-4" Color="@(_isDragging ? Color.Primary : Color.Default)" />
+        <MudText Typo="Typo.h6" Class="mb-2">@Title</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">@Subtitle</MudText>
+        
+        @* Hidden file inputs - one for files, one for folders *@
+        <InputFile id="@_inputId" OnChange="@OnFilesSelected" multiple="@Multiple" accept="@Accept" style="display: none;" />
+        <input type="file" id="@_folderInputId" @onchange="@OnFolderSelectedJs" webkitdirectory="true" style="display: none;" />
+        
+        @if (AllowFolderSelection)
+        {
+            <div class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.InsertDriveFile"
+                           OnClick="@TriggerFileInput">
+                    Browse Files
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" 
+                           Color="Color.Primary" 
+                           StartIcon="@Icons.Material.Filled.Folder"
+                           OnClick="@TriggerFolderInput">
+                    Browse Folder
+                </MudButton>
+            </div>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.FolderOpen"
+                       OnClick="@TriggerFileInput">
+                Browse Files
+            </MudButton>
+        }
+    </div>
+</MudPaper>
+
+@if (SelectedFiles.Any())
+{
+    <MudPaper Class="mt-4 pa-4">
+        <div class="d-flex justify-space-between align-center mb-2">
+            <MudText Typo="Typo.subtitle1">Selected Files (@SelectedFiles.Count)</MudText>
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="@ClearFiles">
+                Clear All
+            </MudButton>
+        </div>
+        <MudList T="FileData" Dense="true">
+            @foreach (var file in SelectedFiles)
+            {
+                <MudListItem T="FileData">
+                    <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@GetFileIcon(file.Name)" Size="Size.Small" Class="mr-2" />
+                            <MudText Typo="Typo.body2">@file.Name</MudText>
+                            <MudText Typo="Typo.caption" Class="ml-2 mud-text-secondary">(@FormatSize(file.Size))</MudText>
+                        </div>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => RemoveFile(file))" />
+                    </div>
+                </MudListItem>
+            }
+        </MudList>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "Drag & Drop Files Here";
+    [Parameter] public string Subtitle { get; set; } = "or click to browse";
+    [Parameter] public bool Multiple { get; set; } = true;
+    [Parameter] public string Accept { get; set; } = "*/*";
+    [Parameter] public EventCallback<List<FileData>> OnFilesChanged { get; set; }
+    [Parameter] public long MaxFileSize { get; set; } = 50 * 1024 * 1024; // 50 MB default
+    [Parameter] public bool AllowFolderSelection { get; set; } = false;
+
+    private bool _isDragging;
+    private readonly string _inputId = $"file-input-{Guid.NewGuid():N}";
+    private readonly string _folderInputId = $"folder-input-{Guid.NewGuid():N}";
+    private List<FileData> SelectedFiles { get; set; } = new();
+
+    public class FileData
+    {
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string RelativePath { get; set; } = string.Empty;
+    }
+
+    private class FileInfo
+    {
+        public string Name { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public string RelativePath { get; set; } = string.Empty;
+    }
+
+    private string GetDropZoneClass() => 
+        $"pa-8 rounded-lg border-2 border-dashed {(_isDragging ? "mud-border-primary" : "mud-border-lines-default")}";
+
+    private string GetDropZoneStyle() =>
+        _isDragging ? "background-color: var(--mud-palette-primary-hover); transition: all 0.2s ease;" 
+                    : "transition: all 0.2s ease;";
+
+    private void OnDragEnter() => _isDragging = true;
+    private void OnDragLeave() => _isDragging = false;
+    private void OnDragOver() => _isDragging = true;
+    private void OnDrop() => _isDragging = false;
+
+    private async Task TriggerFileInput()
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{_inputId}').click()");
+    }
+
+    private async Task TriggerFolderInput()
+    {
+        await JS.InvokeVoidAsync("eval", $"document.getElementById('{_folderInputId}').click()");
+    }
+
+    private async Task OnFolderSelectedJs()
+    {
+        // Read files from folder using JS interop
+        var files = await JS.InvokeAsync<FileInfo[]>("fileHelper.readFolderFiles", _folderInputId, MaxFileSize);
+        
+        if (files != null)
+        {
+            foreach (var file in files)
+            {
+                SelectedFiles.Add(new FileData
+                {
+                    Name = file.Name,
+                    Size = file.Size,
+                    Content = file.Content,
+                    RelativePath = file.RelativePath
+                });
+            }
+            await OnFilesChanged.InvokeAsync(SelectedFiles);
+        }
+    }
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles(100))
+        {
+            if (file.Size > MaxFileSize)
+            {
+                continue; // Skip files that are too large
+            }
+
+            try
+            {
+                using var stream = file.OpenReadStream(MaxFileSize);
+                using var reader = new StreamReader(stream);
+                var content = await reader.ReadToEndAsync();
+
+                SelectedFiles.Add(new FileData
+                {
+                    Name = file.Name,
+                    Size = file.Size,
+                    Content = content
+                });
+            }
+            catch
+            {
+                // Handle error silently for now
+            }
+        }
+
+        await OnFilesChanged.InvokeAsync(SelectedFiles);
+    }
+
+    private async Task RemoveFile(FileData file)
+    {
+        SelectedFiles.Remove(file);
+        await OnFilesChanged.InvokeAsync(SelectedFiles);
+    }
+
+    private async Task ClearFiles()
+    {
+        SelectedFiles.Clear();
+        await OnFilesChanged.InvokeAsync(SelectedFiles);
+    }
+
+    private string GetFileIcon(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".cs" or ".js" or ".ts" or ".py" or ".java" => Icons.Material.Filled.Code,
+            ".json" or ".xml" or ".yaml" or ".yml" => Icons.Material.Filled.DataObject,
+            ".md" or ".txt" => Icons.Material.Filled.Description,
+            ".html" or ".css" => Icons.Material.Filled.Web,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F2} MB";
+    }
+
+    public List<FileData> GetFiles() => SelectedFiles;
+    
+    public void Reset()
+    {
+        SelectedFiles.Clear();
+        StateHasChanged();
+    }
+}

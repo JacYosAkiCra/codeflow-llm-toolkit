@@ -1,0 +1,346 @@
+﻿@page "/split"
+@inject FileProcessingService FileService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Split File - Code Text Toolkit</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Split Text File</MudText>
+<MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">
+    Split large text files into smaller chunks. Intelligent splitting respects code structure and logical boundaries.
+</MudText>
+
+<MudPaper Class="pa-6 mb-6">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+        Split Options
+    </MudText>
+    
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudNumericField @bind-Value="_maxBytes" 
+                             Label="Max Chunk Size (bytes)" 
+                             Variant="Variant.Outlined"
+                             Min="512" 
+                             Max="10485760"
+                             Step="1024"
+                             Adornment="Adornment.End"
+                             AdornmentText="bytes" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect Value="_presetSize" Label="Quick Presets" Variant="Variant.Outlined" ValueChanged="@((string val) => OnPresetChanged(val))">
+                <MudSelectItem Value="@("custom")">Custom</MudSelectItem>
+                <MudSelectItem Value="@("4kb")">4 KB</MudSelectItem>
+                <MudSelectItem Value="@("8kb")">8 KB</MudSelectItem>
+                <MudSelectItem Value="@("12kb")">12 KB (Default)</MudSelectItem>
+                <MudSelectItem Value="@("32kb")">32 KB</MudSelectItem>
+                <MudSelectItem Value="@("64kb")">64 KB</MudSelectItem>
+                <MudSelectItem Value="@("128kb")">128 KB</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="12" md="4">
+            <MudTextField @bind-Value="_outputPrefix" 
+                          Label="Output File Prefix" 
+                          Variant="Variant.Outlined"
+                          HelperText="Files will be named: prefix_chunk001.txt, prefix_chunk002.txt, etc." />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<FileDropZone Title="Drop a File to Split" 
+              Subtitle="Select a text or code file to split into chunks"
+              Multiple="false"
+              Accept=".txt,.md,.log,.json,.xml,.yaml,.yml,.cs,.py,.js,.ts,*"
+              OnFilesChanged="@OnFilesChanged"
+              @ref="_fileDropZone" />
+
+@if (_selectedFile != null)
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Description" Class="mr-2" />
+                File Analysis
+            </MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.CallSplit"
+                       OnClick="@SplitAndDownload"
+                       Disabled="@_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Splitting...</span>
+                }
+                else
+                {
+                    <span>Split & Download</span>
+                }
+            </MudButton>
+        </div>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="0" Style="background: var(--mud-palette-background-gray);">
+                    <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">Original File</MudText>
+                    <MudText Typo="Typo.body2">@_selectedFile.Name</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="0" Style="background: var(--mud-palette-background-gray);">
+                    <MudIcon Icon="@Icons.Material.Filled.DataUsage" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">File Size</MudText>
+                    <MudText Typo="Typo.body2">@FormatSize(_selectedFile.Size)</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="0" Style="background: var(--mud-palette-background-gray);">
+                    <MudIcon Icon="@Icons.Material.Filled.Layers" Size="Size.Large" Color="Color.Tertiary" />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">Estimated Chunks</MudText>
+                    <MudText Typo="Typo.body2">@_estimatedChunks</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 text-center" Elevation="0" Style="background: var(--mud-palette-background-gray);">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Large" Color="Color.Info" />
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">Detected Type</MudText>
+                    <MudText Typo="Typo.body2">@_detectedType</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @if (_isProcessing)
+        {
+            <MudProgressLinear Value="@_progress" Color="Color.Primary" Class="mt-4" />
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                Creating chunk @_currentChunk of @_totalChunks...
+            </MudText>
+        }
+    </MudPaper>
+}
+
+@if (_chunks.Any())
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6" Color="Color.Success">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+                Split Complete - @_chunks.Count Chunks Created
+            </MudText>
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.FolderZip"
+                       OnClick="@DownloadAllChunks">
+                Download All as ZIP
+            </MudButton>
+        </div>
+
+        <MudSimpleTable Dense="true" Hover="true" Striped="true">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Lines</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var i = 0; i < _chunks.Count; i++)
+                {
+                    var chunk = _chunks[i];
+                    var index = i;
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>@chunk.Name</td>
+                        <td>@FormatSize(chunk.Size)</td>
+                        <td>@chunk.LineCount</td>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                           Size="Size.Small" 
+                                           Color="Color.Primary"
+                                           OnClick="@(() => PreviewChunk(index))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Download" 
+                                           Size="Size.Small" 
+                                           Color="Color.Primary"
+                                           OnClick="@(() => DownloadChunk(index))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@if (_showPreview)
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Preview" Class="mr-2" />
+                Preview: @_previewChunkName
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _showPreview = false)" />
+        </div>
+        <MudTextField Value="@_previewContent" 
+                      Lines="15" 
+                      Variant="Variant.Outlined" 
+                      ReadOnly="true"
+                      Style="font-family: monospace;" />
+    </MudPaper>
+}
+
+@code {
+    private class ChunkInfo
+    {
+        public string Name { get; set; } = "";
+        public long Size { get; set; }
+        public int LineCount { get; set; }
+        public string Content { get; set; } = "";
+    }
+
+    private FileDropZone? _fileDropZone;
+    private FileDropZone.FileData? _selectedFile;
+    private List<ChunkInfo> _chunks = new();
+    private bool _isProcessing;
+    private double _progress;
+    private int _currentChunk;
+    private int _totalChunks;
+    private int _maxBytes = 12000;
+    private string _presetSize = "12kb";
+    private string _outputPrefix = "";
+    private int _estimatedChunks;
+    private string _detectedType = "";
+    private bool _showPreview;
+    private string _previewContent = "";
+    private string _previewChunkName = "";
+
+    private void OnFilesChanged(List<FileDropZone.FileData> files)
+    {
+        _selectedFile = files.FirstOrDefault();
+        _chunks.Clear();
+        _showPreview = false;
+
+        if (_selectedFile != null)
+        {
+            _outputPrefix = Path.GetFileNameWithoutExtension(_selectedFile.Name);
+            _estimatedChunks = Math.Max(1, (int)Math.Ceiling((double)_selectedFile.Size / _maxBytes));
+            
+            var lines = _selectedFile.Content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            _detectedType = FileService.GetFileKind(_selectedFile.Name, lines);
+        }
+    }
+
+    private void OnPresetChanged(string value)
+    {
+        _presetSize = value;
+        _maxBytes = value switch
+        {
+            "4kb" => 4096,
+            "8kb" => 8192,
+            "12kb" => 12000,
+            "32kb" => 32768,
+            "64kb" => 65536,
+            "128kb" => 131072,
+            _ => _maxBytes
+        };
+
+        if (_selectedFile != null)
+        {
+            _estimatedChunks = Math.Max(1, (int)Math.Ceiling((double)_selectedFile.Size / _maxBytes));
+        }
+    }
+
+    private async Task SplitAndDownload()
+    {
+        if (_selectedFile == null) return;
+
+        _isProcessing = true;
+        _chunks.Clear();
+        _progress = 0;
+        StateHasChanged();
+
+        await Task.Delay(100); // Allow UI to update
+
+        var splitResult = FileService.SplitFile(_selectedFile.Content, _selectedFile.Name, _maxBytes);
+        _totalChunks = splitResult.Count;
+
+        var prefix = string.IsNullOrWhiteSpace(_outputPrefix) 
+            ? Path.GetFileNameWithoutExtension(_selectedFile.Name) 
+            : _outputPrefix;
+
+        for (var i = 0; i < splitResult.Count; i++)
+        {
+            _currentChunk = i + 1;
+            _progress = (_currentChunk / (double)_totalChunks) * 100;
+            StateHasChanged();
+
+            var chunkContent = string.Join("\n", splitResult[i]);
+            var chunkName = $"{prefix}_chunk{(i + 1):D3}.txt";
+
+            _chunks.Add(new ChunkInfo
+            {
+                Name = chunkName,
+                Size = System.Text.Encoding.UTF8.GetByteCount(chunkContent),
+                LineCount = splitResult[i].Length,
+                Content = chunkContent
+            });
+
+            await Task.Delay(50); // Small delay for UI responsiveness
+        }
+
+        _isProcessing = false;
+        Snackbar.Add($"Split into {_chunks.Count} chunks", Severity.Success);
+    }
+
+    private async Task DownloadAllChunks()
+    {
+        var filesToSave = _chunks.Select(c => new { name = c.Name, content = c.Content }).ToList();
+        
+        var zipName = string.IsNullOrWhiteSpace(_outputPrefix) 
+            ? "split_files.zip" 
+            : $"{_outputPrefix}_chunks.zip";
+
+        var result = await JS.InvokeAsync<ZipResult>("fileHelper.downloadAsZip", filesToSave, zipName);
+
+        if (result.Success)
+        {
+            Snackbar.Add($"Downloaded ZIP with {result.SavedCount} chunk(s)!", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Error: {result.Error}", Severity.Error);
+        }
+    }
+
+    private class ZipResult
+    {
+        public bool Success { get; set; }
+        public int SavedCount { get; set; }
+        public string? Error { get; set; }
+    }
+
+    private async Task DownloadChunk(int index)
+    {
+        var chunk = _chunks[index];
+        await JS.InvokeVoidAsync("fileHelper.downloadTextFile", chunk.Name, chunk.Content);
+        Snackbar.Add($"Downloaded {chunk.Name}", Severity.Success);
+    }
+
+    private void PreviewChunk(int index)
+    {
+        var chunk = _chunks[index];
+        _previewContent = chunk.Content;
+        _previewChunkName = chunk.Name;
+        _showPreview = true;
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F2} MB";
+    }
+}
+

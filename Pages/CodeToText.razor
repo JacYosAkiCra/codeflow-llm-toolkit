@@ -1,0 +1,292 @@
+﻿@page "/code-to-text"
+@inject FileProcessingService FileService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Code to Text - Code Text Toolkit</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2">Code to Text Converter</MudText>
+<MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">
+    Convert code files to plain text (.txt) format. Upload your files and download them as a ZIP archive.
+</MudText>
+
+<MudPaper Class="pa-6 mb-6">
+    <MudText Typo="Typo.h6" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mr-2" />
+        Options
+    </MudText>
+    
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSwitch @bind-Value="_includeUnknownTypes" Color="Color.Primary" Label="Include unknown file types" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSwitch @bind-Value="_preserveExtensionInName" Color="Color.Primary" Label="Preserve original extension in filename" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_zipFileName" Label="ZIP File Name" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText=".zip" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<FileDropZone Title="Drop Code Files or Select a Folder" 
+              Subtitle="Supports C#, Python, JavaScript, TypeScript, Java, Go, and many more"
+              Multiple="true"
+              AllowFolderSelection="true"
+              Accept=".c,.cpp,.cs,.py,.js,.ts,.jsx,.tsx,.java,.go,.rs,.php,.rb,.swift,.kt,.html,.css,.json,.xml,.yaml,.yml,.sql,.sh,.ps1,.md,.txt,*"
+              OnFilesChanged="@OnFilesChanged"
+              @ref="_fileDropZone" />
+
+@if (_files.Any())
+{
+    <MudPaper Class="pa-6 mt-6">
+        <div class="d-flex justify-space-between align-center mb-4">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Filled.Transform" Class="mr-2" />
+                Ready to Convert (@_files.Count files)
+            </MudText>
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.FolderZip"
+                       OnClick="@ConvertAndDownload"
+                       Disabled="@_isProcessing">
+                @if (_isProcessing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Processing...</span>
+                }
+                else
+                {
+                    <span>Convert & Download ZIP</span>
+                }
+            </MudButton>
+        </div>
+
+        @if (_isProcessing)
+        {
+            <MudProgressLinear Value="@_progress" Color="Color.Primary" Class="mb-4" />
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @_currentFile
+            </MudText>
+        }
+
+        <MudSimpleTable Dense="true" Hover="true" Striped="true">
+            <thead>
+                <tr>
+                    <th>Original File</th>
+                    <th>Path</th>
+                    <th>New Name</th>
+                    <th>Size</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var file in _files)
+                {
+                    var newName = GetNewFileName(file.Name);
+                    var isSupported = FileService.IsSupportedExtension(file.Name);
+                    <tr>
+                        <td>@file.Name</td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(file.RelativePath) && file.RelativePath != file.Name)
+                            {
+                                <MudTooltip Text="@file.RelativePath">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        @GetFolderPath(file.RelativePath)
+                                    </MudText>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">-</MudText>
+                            }
+                        </td>
+                        <td>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary">@newName</MudChip>
+                        </td>
+                        <td>@FormatSize(file.Size)</td>
+                        <td>
+                            @if (isSupported)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Known</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">Unknown</MudChip>
+                            }
+                        </td>
+                        <td>
+                            <MudIconButton Icon="@Icons.Material.Filled.Download" 
+                                           Size="Size.Small" 
+                                           Color="Color.Primary"
+                                           OnClick="@(() => DownloadSingle(file))" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@if (_conversionComplete)
+{
+    <MudPaper Class="pa-6 mt-6" Style="background: var(--mud-palette-success-lighten);">
+        <MudText Typo="Typo.h6" Color="Color.Success" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
+            Conversion Complete!
+        </MudText>
+        <MudText Typo="Typo.body2">
+            Successfully converted @_convertedCount file(s) and downloaded as @(_zipFileName).zip
+        </MudText>
+    </MudPaper>
+}
+
+@code {
+    private FileDropZone? _fileDropZone;
+    private List<FileDropZone.FileData> _files = new();
+    private bool _isProcessing;
+    private double _progress;
+    private string _currentFile = "";
+    private bool _includeUnknownTypes = true;
+    private bool _preserveExtensionInName;
+    private string _zipFileName = "converted_files";
+    private bool _conversionComplete;
+    private int _convertedCount;
+
+    private void OnFilesChanged(List<FileDropZone.FileData> files)
+    {
+        _files = files;
+        _conversionComplete = false;
+        
+        // Auto-set ZIP name based on first file or folder
+        if (files.Any())
+        {
+            var firstPath = files.First().RelativePath;
+            if (!string.IsNullOrEmpty(firstPath) && firstPath.Contains('/'))
+            {
+                // From folder - use folder name
+                _zipFileName = firstPath.Split('/')[0] + "_converted";
+            }
+            else if (files.Count == 1)
+            {
+                // Single file
+                _zipFileName = Path.GetFileNameWithoutExtension(files.First().Name) + "_converted";
+            }
+            else
+            {
+                _zipFileName = "converted_files";
+            }
+        }
+    }
+
+    private string GetNewFileName(string originalName)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(originalName);
+        var ext = Path.GetExtension(originalName);
+        
+        if (_preserveExtensionInName && !string.IsNullOrEmpty(ext))
+        {
+            return $"{baseName}{ext.Replace(".", "_")}.txt";
+        }
+        
+        return $"{baseName}.txt";
+    }
+
+    private async Task ConvertAndDownload()
+    {
+        _isProcessing = true;
+        _conversionComplete = false;
+        _progress = 0;
+        StateHasChanged();
+
+        var filesToProcess = _includeUnknownTypes 
+            ? _files 
+            : _files.Where(f => FileService.IsSupportedExtension(f.Name)).ToList();
+
+        // Prepare all files for ZIP
+        _currentFile = "Preparing files...";
+        var filesToSave = new List<object>();
+        
+        for (var i = 0; i < filesToProcess.Count; i++)
+        {
+            var file = filesToProcess[i];
+            _currentFile = $"Processing {file.Name}...";
+            _progress = (i + 1.0) / filesToProcess.Count * 80;
+            StateHasChanged();
+
+            var newName = GetNewFileName(file.Name);
+            
+            // Handle duplicate names by adding suffix
+            var existingNames = filesToSave.Cast<dynamic>().Select(f => (string)f.name).ToList();
+            var uniqueName = newName;
+            var counter = 1;
+            while (existingNames.Contains(uniqueName))
+            {
+                var nameWithoutExt = Path.GetFileNameWithoutExtension(newName);
+                uniqueName = $"{nameWithoutExt}_{counter}.txt";
+                counter++;
+            }
+            
+            filesToSave.Add(new { name = uniqueName, content = file.Content });
+        }
+
+        _currentFile = "Creating ZIP archive...";
+        _progress = 90;
+        StateHasChanged();
+
+        // Download as ZIP
+        var zipName = string.IsNullOrWhiteSpace(_zipFileName) ? "converted_files" : _zipFileName;
+        if (!zipName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            zipName += ".zip";
+        }
+
+        var result = await JS.InvokeAsync<ZipResult>("fileHelper.downloadAsZip", filesToSave, zipName);
+
+        _progress = 100;
+        _isProcessing = false;
+        _currentFile = "";
+
+        if (result.Success)
+        {
+            _conversionComplete = true;
+            _convertedCount = result.SavedCount;
+            Snackbar.Add($"Successfully created {zipName} with {result.SavedCount} file(s)!", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Error creating ZIP: {result.Error}", Severity.Error);
+        }
+        
+        StateHasChanged();
+    }
+
+    private class ZipResult
+    {
+        public bool Success { get; set; }
+        public int SavedCount { get; set; }
+        public string? Error { get; set; }
+    }
+
+    private async Task DownloadSingle(FileDropZone.FileData file)
+    {
+        var newName = GetNewFileName(file.Name);
+        await JS.InvokeVoidAsync("fileHelper.downloadTextFile", newName, file.Content);
+        Snackbar.Add($"Downloaded {newName}", Severity.Success);
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024):F2} MB";
+    }
+
+    private static string GetFolderPath(string relativePath)
+    {
+        if (string.IsNullOrEmpty(relativePath)) return "";
+        var lastSlash = relativePath.LastIndexOfAny(new[] { '/', '\\' });
+        return lastSlash > 0 ? relativePath[..lastSlash] : "";
+    }
+}
