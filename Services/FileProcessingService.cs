@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace CodeTextToolkit.Services;
+namespace CodeFlowLLMToolkit.Services;
 
 public class FileProcessingService
 {
