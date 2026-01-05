@@ -4,14 +4,9 @@ A modern, cross-platform web application for text and code file operations. Buil
 
 ## 🚀 Try It Now
 
-**[Launch CodeFlow LLM Toolkit](http://localhost:5080)** - No installation required!
+**[Launch CodeFlow LLM Toolkit](https://jacyosakicra.github.io/codeflow-llm-toolkit/)** - No installation required!
 
----
-
-![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)
-![Blazor WASM](https://img.shields.io/badge/Blazor-WebAssembly-blue)
-![MudBlazor](https://img.shields.io/badge/UI-MudBlazor-green)
-[![Deploy to GitHub Pages](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/JacYosAkiCra/CodeTextToolkit/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages](https://github.com/JacYosAkiCra/codeflow-llm-toolkit/actions/workflows/deploy.yml/badge.svg)](https://github.com/JacYosAkiCra/codeflow-llm-toolkit/actions/workflows/deploy.yml)
 
 ## Features
 
@@ -66,8 +61,8 @@ Split large text files into smaller chunks with:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/CodeTextToolkit.git
-cd CodeTextToolkit
+git clone https://github.com/JacYosAkiCra/codeflow-llm-toolkit.git
+cd codeflow-llm-toolkit
 ```
 
 2. Restore packages:
