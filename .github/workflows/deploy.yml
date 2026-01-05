@@ -41,7 +41,7 @@ jobs:
 
       # Fix base href for GitHub Pages
       - name: Update base href
-        run: sed -i 's|<base href="/" />|<base href="/codeflow-llm-toolkit/" />|g' release/wwwroot/index.html
+        run: sed -i 's|<base href="/" />|<base href="/codeflow-llm-toolkit/" />|g' release/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
