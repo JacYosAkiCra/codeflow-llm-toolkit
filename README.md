@@ -67,8 +67,8 @@ Split large text files into smaller chunks with:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/CodeTextToolkit.git
-cd CodeTextToolkit
+git clone https://github.com/JacYosAkiCra/codeflow-llm-toolkit.git
+cd codeflow-llm-toolkit
 ```
 
 2. Restore packages:
